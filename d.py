@@ -78,8 +78,8 @@ def handle_attack(message):
         num_repeats = int(message.text.split()[2]) if len(message.text.split()) > 2 else 1
         
         # زيادة عدد الخيوط
-        max_workers = 500000  # يمكنك تعديل هذا الرقم بناءً على قدرة جهازك والهدف
-        num_requests = 100000  # يمكنك أيضاً تعديل عدد الطلبات
+        max_workers = 5  # يمكنك تعديل هذا الرقم بناءً على قدرة جهازك والهدف
+        num_requests = 100  # يمكنك أيضاً تعديل عدد الطلبات
 
         with attack_lock:
             attack_in_progress = True
