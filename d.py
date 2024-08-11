@@ -19,7 +19,7 @@ Owner = ['6358035274']
 NormalUsers = []
 
 # استبدل 'YOUR_TOKEN_HERE' بالرمز الخاص بك من BotFather
-bot = telebot.TeleBot('7317402155:AAHNB3hgGqKXiLqF1OhTYLG78HmTlm8dYI4')
+bot = telebot.TeleBot('6487566598:AAFMrBHPnSoX7FRlMhXHsVBNC3UMrZBgbPM')
 
 # متغيرات التحكم في الهجوم
 attack_in_progress = False
